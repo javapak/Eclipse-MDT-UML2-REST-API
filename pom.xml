@@ -1,0 +1,128 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+	<modelVersion>4.0.0</modelVersion>
+	<parent>
+		<groupId>org.springframework.boot</groupId>
+		<artifactId>spring-boot-starter-parent</artifactId>
+		<version>3.5.0</version>
+		<relativePath/>
+	</parent>
+	<groupId>com.javapak</groupId>
+	<artifactId>mda</artifactId>
+	<version>0.0.1-SNAPSHOT</version>
+	<name>mda</name>
+	<description>Web-based UML2 Modeling and Metamodeling Toolkit</description>
+
+	<properties>
+		<java.version>24</java.version>
+		<eclipse.uml2.version>5.5.0</eclipse.uml2.version>
+		<eclipse.emf.version>2.39.0</eclipse.emf.version>
+		<eclipse.equinox.version>3.18.0</eclipse.equinox.version>
+		<eclipse.platform.version>3.8.0</eclipse.platform.version>
+	</properties>
+
+	<repositories>
+		<repository>
+			<id>eclipse-releases</id>
+			<url>https://repo.eclipse.org/content/groups/releases/</url>
+		</repository>
+	</repositories>
+
+	<dependencies>
+		<!-- Spring Boot WebFlux -->
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-webflux</artifactId>
+		</dependency>
+
+		<!-- UML2 Complete Dependency Set -->
+		<dependency>
+			<groupId>org.eclipse.uml2</groupId>
+			<artifactId>uml2-fat-jar</artifactId>
+			<version>1.0.0</version>
+			<scope>system</scope>
+			<systemPath>${project.basedir}/uml2_alldeps.jar</systemPath>
+		</dependency>
+
+		<!-- Jackson EMF Support -->
+		<dependency>
+			<groupId>org.emfjson</groupId>
+			<artifactId>emfjson-jackson</artifactId>
+			<version>1.3.0</version>
+		</dependency>
+
+		<!-- JSON Processing -->
+		<dependency>
+			<groupId>com.fasterxml.jackson.core</groupId>
+			<artifactId>jackson-databind</artifactId>
+		</dependency>
+
+		<dependency>
+			<groupId>com.fasterxml.jackson.core</groupId>
+			<artifactId>jackson-core</artifactId>
+		</dependency>
+
+		<dependency>
+			<groupId>com.fasterxml.jackson.core</groupId>
+			<artifactId>jackson-annotations</artifactId>
+		</dependency>
+
+		<!-- Logging (SLF4J bridge for Eclipse components) -->
+		<dependency>
+			<groupId>org.slf4j</groupId>
+			<artifactId>slf4j-api</artifactId>
+		</dependency>
+
+		<!-- Test Dependencies -->
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-test</artifactId>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>io.projectreactor</groupId>
+			<artifactId>reactor-test</artifactId>
+			<scope>test</scope>
+		</dependency>	</dependencies>
+
+	<build>
+		<plugins>
+			<plugin>
+				<groupId>org.springframework.boot</groupId>
+				<artifactId>spring-boot-maven-plugin</artifactId>
+			</plugin>
+			
+			<!-- Maven dependency plugin to help debug missing deps -->
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-dependency-plugin</artifactId>
+				<version>3.6.1</version>
+				<executions>
+					<execution>
+						<goals>
+							<goal>analyze-report</goal>
+						</goals>
+					</execution>
+				</executions>
+			</plugin>
+		</plugins>
+	</build>
+
+
+	<dependencyManagement>
+	
+
+		<dependencies>
+		
+
+			<dependency>
+				<groupId>org.eclipse.platform</groupId>
+				<artifactId>org.eclipse.equinox.common</artifactId>
+				<version>3.18.100</version>
+			</dependency>
+
+		</dependencies>
+
+	</dependencyManagement>
+</project>
