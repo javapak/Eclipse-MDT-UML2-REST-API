@@ -10,7 +10,7 @@ import reactor.core.scheduler.Schedulers;
 
 @RestController
 @RequestMapping("/api/v1/toolkit")
-@CrossOrigin(origins = "http://localhost:5173") // temp local testing only... remove later!
+@CrossOrigin(origins = {"http://localhost:5173", "https://file+.vscode-resource.vscode-cdn.net"}) // temp local testing only... remove later!
 public class ModelingToolkitController {
 
     @Autowired
