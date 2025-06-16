@@ -4,36 +4,40 @@ import org.eclipse.emf.common.util.URI;
 import org.eclipse.emf.ecore.resource.Resource;
 import org.eclipse.emf.ecore.resource.ResourceSet;
 import org.eclipse.emf.ecore.resource.impl.ResourceSetImpl;
-import org.eclipse.uml2.uml.Interface;
-import org.eclipse.uml2.uml.Model;
+import org.eclipse.uml2.uml.*;
 import org.eclipse.uml2.uml.Package;
-import org.eclipse.uml2.uml.Profile;
-import org.eclipse.uml2.uml.Property;
-import org.eclipse.uml2.uml.Stereotype;
-import org.eclipse.uml2.uml.UMLFactory;
-import org.eclipse.uml2.uml.UMLPackage;
-import org.eclipse.uml2.uml.VisibilityKind;
 import org.eclipse.uml2.uml.resource.UMLResource;
 import org.springframework.http.codec.multipart.FilePart;
 import org.springframework.stereotype.Service;
 
-import com.javapak.mda.dto.AddClassRequest;
-import com.javapak.mda.dto.AddInterfaceRequest;
-import com.javapak.mda.dto.PropertySpec;
+import com.javapak.mda.dto.*;
 
 import reactor.core.publisher.Mono;
 
 import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.List;
 
 @Service
 public class ModelingService {
 
-    /**
-     * Create completely empty model
-     */
-    public Model createEmptyModel(String name, String uri) {
+    // ========== STRUCTURAL ELEMENTS ==========
+    
+    public org.eclipse.uml2.uml.Class createClass(String name, Package owner, boolean isAbstract) {
+        org.eclipse.uml2.uml.Class clazz = owner.createOwnedClass(name, isAbstract);
+        return clazz;
+    }
+    
+    public Interface createInterface(String name, Package owner) {
+        return owner.createOwnedInterface(name);
+    }
+    
+    public Package createPackage(String name, Package owner) {
+        return owner.createNestedPackage(name);
+    }
+    
+    public Model createModel(String name, String uri) {
         Model model = UMLFactory.eINSTANCE.createModel();
         model.setName(name);
         if (uri != null) {
@@ -41,126 +45,135 @@ public class ModelingService {
         }
         return model;
     }
+    
+    public Component createComponent(String name, Package owner) {
+        return (Component) owner.createOwnedType(name, UMLPackage.Literals.COMPONENT);
+    }
+    
+    public Node createNode(String name, Package owner) {
+        return (Node) owner.createOwnedType(name, UMLPackage.Literals.NODE);
+    }
+    
+    public Artifact createArtifact(String name, Package owner) {
+        return (Artifact) owner.createOwnedType(name, UMLPackage.Literals.ARTIFACT);
+    }
+    
+    public DataType createDataType(String name, Package owner) {
+        return (DataType) owner.createOwnedType(name, UMLPackage.Literals.DATA_TYPE);
+    }
+    
+    public PrimitiveType createPrimitiveType(String name, Package owner) {
+        return owner.createOwnedPrimitiveType(name);
+    }
+    
+    public Enumeration createEnumeration(String name, Package owner) {
+        return owner.createOwnedEnumeration(name);
+    }
+    
+    public EnumerationLiteral createEnumerationLiteral(String name, Enumeration owner) {
+        return owner.createOwnedLiteral(name);
+    }
 
-    /**
-     * Create model from predefined templates
-     */
-    public Model createModelFromTemplate(String name, String uri, String templateType) {
-        Model model = createEmptyModel(name, uri);
-        
-        switch (templateType.toLowerCase()) {
-            case "domain":
-                return createDomainModelTemplate(model);
-            case "component":
-                return createComponentModelTemplate(model);
-            case "layered":
-                return createLayeredArchitectureTemplate(model);
-            case "microservice":
-                return createMicroserviceTemplate(model);
-            default:
-                return model; // Return empty if unknown template
+    // ========== BEHAVIORAL ELEMENTS ==========
+    
+    public Operation createOperation(String name, org.eclipse.uml2.uml.Class owner, Type returnType) {
+        Operation op = owner.createOwnedOperation(name, null, null, returnType);
+        return op;
+    }
+    
+    public Parameter createParameter(String name, Operation owner, Type type, ParameterDirectionKind direction) {
+        return owner.createOwnedParameter(name, type);
+    }
+    
+    public Property createProperty(String name, org.eclipse.uml2.uml.Class owner, Type type) {
+        return owner.createOwnedAttribute(name, type);
+    }
+    
+    public Activity createActivity(String name, Package owner) {
+        return (Activity) owner.createOwnedType(name, UMLPackage.Literals.ACTIVITY);
+    }
+    
+    public StateMachine createStateMachine(String name, org.eclipse.uml2.uml.Class owner) {
+        return (StateMachine) owner.createOwnedBehavior(name, UMLPackage.Literals.STATE_MACHINE);
+    }
+    
+    public Interaction createInteraction(String name, Package owner) {
+        return (Interaction) owner.createOwnedType(name, UMLPackage.Literals.INTERACTION);
+    }
+
+    // ========== RELATIONSHIPS ==========
+    
+    public Association createAssociation(String name, Package owner, Type end1Type, Type end2Type) {
+        return (Association) owner.createOwnedType(name, UMLPackage.Literals.ASSOCIATION);
+    }
+    
+    public Generalization createGeneralization(Classifier specific, Classifier general) {
+        return specific.createGeneralization(general);
+    }
+    
+    public InterfaceRealization createInterfaceRealization(String name, BehavioredClassifier implementer, Interface contract) {
+        return implementer.createInterfaceRealization(name, contract);
+    }
+    
+    public Dependency createDependency(String name, Package owner, NamedElement client, NamedElement supplier) {
+        Dependency dep = (Dependency) owner.createOwnedType(name, UMLPackage.Literals.DEPENDENCY);
+        dep.getClients().add(client);
+        dep.getSuppliers().add(supplier);
+        return dep;
+    }
+    
+    public Usage createUsage(String name, Package owner, NamedElement client, NamedElement supplier) {
+        Usage usage = (Usage) owner.createOwnedType(name, UMLPackage.Literals.USAGE);
+        usage.getClients().add(client);
+        usage.getSuppliers().add(supplier);
+        return usage;
+    }
+
+    // ========== ACTIVITY DIAGRAM ELEMENTS ==========
+    
+    public ActivityNode createActivityNode(String name, Activity owner, java.lang.Class nodeType) {
+        // Factory method for different activity node types
+        if (nodeType == InitialNode.class) {
+            return owner.createOwnedNode(name, UMLPackage.Literals.INITIAL_NODE);
+        } else if (nodeType == FinalNode.class) {
+            return owner.createOwnedNode(name, UMLPackage.Literals.ACTIVITY_FINAL_NODE);
+        } else if (nodeType == OpaqueAction.class) {
+            return owner.createOwnedNode(name, UMLPackage.Literals.OPAQUE_ACTION);
         }
+        // Add more node types as needed
+        return null;
+    }
+    
+    public ActivityEdge createActivityEdge(String name, Activity owner, ActivityNode source, ActivityNode target) {
+        return owner.createEdge(name, UMLPackage.Literals.CONTROL_FLOW);
     }
 
-    /**
-     * Domain Model Template - typical business domain structure
-     */
-    private Model createDomainModelTemplate(Model model) {
-        // Create typical domain packages
-        Package domainPkg = model.createNestedPackage("domain");
-        Package entitiesPkg = domainPkg.createNestedPackage("entities");
-        Package valueObjectsPkg = domainPkg.createNestedPackage("valueobjects");
-        Package servicesPkg = domainPkg.createNestedPackage("services");
-        Package repositoriesPkg = domainPkg.createNestedPackage("repositories");
-        
-        // Add some basic interfaces
-        Interface entityInterface = entitiesPkg.createOwnedInterface("Entity");
-        Interface repositoryInterface = repositoriesPkg.createOwnedInterface("Repository");
-        Interface domainServiceInterface = servicesPkg.createOwnedInterface("DomainService");
-        
-        return model;
+    // ========== STATE MACHINE ELEMENTS ==========
+    
+    public State createState(String name, StateMachine owner) {
+        Region region = owner.createRegion("Region1");
+        return (State) region.createSubvertex(name, UMLPackage.Literals.STATE);
+    }
+    
+    public Transition createTransition(String name, StateMachine owner, Vertex source, Vertex target) {
+        Region region = owner.getRegions().get(0); // Assume first region
+        return region.createTransition(name);
     }
 
-    /**
-     * Component Model Template - component-based architecture
-     */
-    private Model createComponentModelTemplate(Model model) {
-        Package componentsPkg = model.createNestedPackage("components");
-        Package interfacesPkg = model.createNestedPackage("interfaces");
-        Package connectorsPkg = model.createNestedPackage("connectors");
-        
-        return model;
+    // ========== INTERACTION ELEMENTS ==========
+    
+    public Lifeline createLifeline(String name, Interaction owner, ConnectableElement represents) {
+        Lifeline lifeline = owner.createLifeline(name);
+        lifeline.setRepresents(represents);
+        return lifeline;
+    }    
+    public Message createMessage(String name, Interaction owner, MessageSort sort) {
+        return owner.createMessage(name);
     }
 
-    /**
-     * Layered Architecture Template
-     */
-    private Model createLayeredArchitectureTemplate(Model model) {
-        Package presentationPkg = model.createNestedPackage("presentation");
-        Package businessPkg = model.createNestedPackage("business");
-        Package persistencePkg = model.createNestedPackage("persistence");
-        Package infrastructurePkg = model.createNestedPackage("infrastructure");
-        
-        return model;
-    }
-
-    /**
-     * Microservice Template
-     */
-    private Model createMicroserviceTemplate(Model model) {
-        Package apiPkg = model.createNestedPackage("api");
-        Package domainPkg = model.createNestedPackage("domain");
-        Package infrastructurePkg = model.createNestedPackage("infrastructure");
-        Package configPkg = model.createNestedPackage("configuration");
-        
-        return model;
-    }
-
-    /**
-     * Add class to model
-     */
-    public Model addClassToModel(AddClassRequest request) {
-        Model model = request.getModel();
-        
-        Package targetPackage = request.getPackageName() != null 
-            ? findPackage(model, request.getPackageName())
-            : model;
-        
-        org.eclipse.uml2.uml.Class newClass = targetPackage.createOwnedClass(request.getClassName(), request.isAbstract());
-        newClass.setVisibility(VisibilityKind.get(request.getVisibility()));
-        
-        // Add properties if specified
-        if (request.getProperties() != null) {
-            for (PropertySpec propSpec : request.getProperties()) {
-                Property prop = newClass.createOwnedAttribute(propSpec.getName(), null);
-                prop.setVisibility(VisibilityKind.get(propSpec.getVisibility()));
-                // TODO: Set type based on propSpec.getTypeName()
-            }
-        }
-        
-        return model;
-    }
-
-    /**
-     * Add interface to model
-     */
-    public Model addInterfaceToModel(AddInterfaceRequest request) {
-        Model model = request.getModel();
-        
-        Package targetPackage = request.getPackageName() != null 
-            ? findPackage(model, request.getPackageName())
-            : model;
-        
-        Interface newInterface = targetPackage.createOwnedInterface(request.getInterfaceName());
-        newInterface.setVisibility(VisibilityKind.get(request.getVisibility()));
-        
-        return model;
-    }
-
-    /**
-     * Create empty profile
-     */
-    public Profile createEmptyProfile(String name, String uri) {
+    // ========== PROFILE ELEMENTS ==========
+    
+    public Profile createProfile(String name, String uri) {
         Profile profile = UMLFactory.eINSTANCE.createProfile();
         profile.setName(name);
         if (uri != null) {
@@ -168,178 +181,94 @@ public class ModelingService {
         }
         return profile;
     }
+    
+    public Stereotype createStereotype(String name, Profile owner, boolean isAbstract) {
+        return owner.createOwnedStereotype(name, isAbstract);
+    }
+    
+    public Extension createExtension(String name, Stereotype stereotype, org.eclipse.uml2.uml.Class metaclass) {
+        return stereotype.createExtension(metaclass, false);
+    }
 
-    /**
-     * Create profile from template
-     */
-    public Profile createProfileFromTemplate(String name, String uri, String templateType) {
-        Profile profile = createEmptyProfile(name, uri);
-        
-        switch (templateType.toLowerCase()) {
-            case "web":
-                return createWebProfileTemplate(profile);
-            case "persistence":
-                return createPersistenceProfileTemplate(profile);
-            case "security":
-                return createSecurityProfileTemplate(profile);
-            default:
-                return profile;
+    // ========== CONSTRAINT ELEMENTS ==========
+    
+    public Constraint createConstraint(String name, Namespace owner, String body, String language) {
+        Constraint constraint = owner.createOwnedRule(name, UMLPackage.Literals.CONSTRAINT);
+        if (body != null) {
+            OpaqueExpression expr = UMLFactory.eINSTANCE.createOpaqueExpression();
+            expr.getBodies().add(body);
+            if (language != null) {
+                expr.getLanguages().add(language);
+            }
+            constraint.setSpecification(expr);
         }
+        return constraint;
     }
 
-    private Profile createWebProfileTemplate(Profile profile) {
-        // Create common web stereotypes
-        Stereotype controller = profile.createOwnedStereotype("Controller", false);
-        Stereotype service = profile.createOwnedStereotype("Service", false);
-        Stereotype repository = profile.createOwnedStereotype("Repository", false);
-        
-        return profile;
+    // ========== UTILITY METHODS ==========
+    
+    public void setVisibility(NamedElement element, String visibility) {
+        element.setVisibility(VisibilityKind.get(visibility.toLowerCase()));
     }
-
-    private Profile createPersistenceProfileTemplate(Profile profile) {
-        Stereotype entity = profile.createOwnedStereotype("Entity", false);
-        Stereotype table = profile.createOwnedStereotype("Table", false);
-        Stereotype column = profile.createOwnedStereotype("Column", false);
-        
-        return profile;
+    
+    public void setMultiplicity(MultiplicityElement element, int lower, int upper) {
+        element.setLower(lower);
+        element.setUpper(upper);
     }
-
-    private Profile createSecurityProfileTemplate(Profile profile) {
-        Stereotype secured = profile.createOwnedStereotype("Secured", false);
-        Stereotype authenticated = profile.createOwnedStereotype("Authenticated", false);
-        Stereotype authorized = profile.createOwnedStereotype("Authorized", false);
-        
-        return profile;
-    }
-
-    public Package findPackage(Model model, String packageName) {
-        return model.getNestedPackages().stream()
-            .filter(pkg -> packageName.equals(pkg.getName()))
+    
+    public NamedElement findElementByName(Namespace namespace, String name) {
+        return namespace.getOwnedMembers().stream()
+            .filter(NamedElement.class::isInstance)
+            .map(NamedElement.class::cast)
+            .filter(e -> name.equals(e.getName()))
             .findFirst()
-            .orElseThrow(() -> new RuntimeException("Package not found: " + packageName));
+            .orElse(null);
+    }
+    
+    public <T extends Element> T findElementByType(Namespace namespace, String name, java.lang.Class<T> type) {
+        return namespace.getOwnedMembers().stream()
+            .filter(type::isInstance)
+            .map(type::cast)
+            .filter(e -> e instanceof NamedElement && name.equals(((NamedElement) e).getName()))
+            .findFirst()
+            .orElse(null);
     }
 
-    /**
-     * Convert uploaded XMI file to UML2 Model (returns as EMF JSON via Jackson)
-     */
-    public Mono<Model> convertXMIFileToModel(FilePart filePart) {
+    // ========== FILE I/O METHODS ==========
+    
+    public Mono<Model> loadModelFromXMI(FilePart filePart) {
         return Mono.fromCallable(() -> {
-            // Save uploaded file temporarily
             Path tempFile = Files.createTempFile("upload", ".uml");
             
             try {
-                // Save uploaded content
                 filePart.transferTo(tempFile).block();
                 
-                // Load as UML2 model
                 ResourceSet resourceSet = createConfiguredResourceSet();
                 Resource resource = resourceSet.getResource(URI.createFileURI(tempFile.toString()), true);
                 
                 Model model = (Model) resource.getContents().get(0);
-                
-                // Clean up
                 Files.deleteIfExists(tempFile);
-                
-                return model; // Jackson EMF will serialize this to JSON
+                return model;
                 
             } catch (Exception e) {
                 try { Files.deleteIfExists(tempFile); } catch (Exception ignored) {}
-                throw new RuntimeException("Failed to process XMI file", e);
+                throw new RuntimeException("Failed to load XMI file", e);
             }
         });
     }
-
-    /**
-     * Convert uploaded XMI file to UML2 Profile
-     */
-    public Mono<Profile> convertXMIFileToProfile(FilePart filePart) {
-        return Mono.fromCallable(() -> {
-            Path tempFile = Files.createTempFile("profile", ".uml");
-            
-            try {
-                filePart.transferTo(tempFile).block();
-                
-                ResourceSet resourceSet = createConfiguredResourceSet();
-                Resource resource = resourceSet.getResource(URI.createFileURI(tempFile.toString()), true);
-                
-                Profile profile = (Profile) resource.getContents().get(0);
-                
-                Files.deleteIfExists(tempFile);
-                return profile;
-                
-            } catch (Exception e) {
-                try { Files.deleteIfExists(tempFile); } catch (Exception ignored) {}
-                throw new RuntimeException("Failed to process profile file", e);
-            }
-        });
-    }
-
-    /**
-     * Apply profile to model
-     */
-    public Model applyProfileToModel(Model model, Profile profile) {
-        // Apply the profile
-        model.applyProfile(profile);
-        return model;
-    }
-
-    /**
-     * Add stereotype to profile
-     */
-    public Profile addStereotypeToProfile(Profile profile, String stereotypeName, String baseClass) {
-        Stereotype stereotype = profile.createOwnedStereotype(stereotypeName, false);
-        
-        // Find the UML metaclass to extend
-        org.eclipse.uml2.uml.Class metaclass = (org.eclipse.uml2.uml.Class) profile.eClass();
-        if (metaclass != null) {
-            stereotype.createExtension(metaclass, false);
-        }
-        
-        return profile;
-    }
-
-    /**
-     * Process/validate model
-     */
-    public Model processModel(Model model) {
-        // Perform validation, cleanup, etc.
-        // For now, just return the model
-        return model;
-    }
-
-    /**
-     * Export model to XMI string
-     */
-    public String exportModelToXMI(Model model) {
+    
+    public String exportToXMI(Element element) {
         try {
             ResourceSet resourceSet = createConfiguredResourceSet();
             Resource resource = resourceSet.createResource(URI.createURI("temp://export.uml"));
-            resource.getContents().add(model);
+            resource.getContents().add(element);
             
             ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
             resource.save(outputStream, null);
             return outputStream.toString("UTF-8");
             
         } catch (IOException e) {
-            throw new RuntimeException("Failed to export model to XMI", e);
-        }
-    }
-
-    /**
-     * Export profile to XMI string
-     */
-    public String exportProfileToXMI(Profile profile) {
-        try {
-            ResourceSet resourceSet = createConfiguredResourceSet();
-            Resource resource = resourceSet.createResource(URI.createURI("temp://profile.uml"));
-            resource.getContents().add(profile);
-            
-            ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
-            resource.save(outputStream, null);
-            return outputStream.toString("UTF-8");
-            
-        } catch (IOException e) {
-            throw new RuntimeException("Failed to export profile to XMI", e);
+            throw new RuntimeException("Failed to export to XMI", e);
         }
     }
 
@@ -350,11 +279,5 @@ public class ModelingService {
             .getExtensionToFactoryMap()
             .put(UMLResource.FILE_EXTENSION, UMLResource.Factory.INSTANCE);
         return resourceSet;
-    }
-
-    private Class findMetaclass(String baseClassName) {
-        // Simplified - in reality you'd look up UML metaclasses
-        // This would find Class, Property, Operation, etc. from UML metamodel
-        return null; // TODO: Implement proper metaclass lookup
     }
 }
